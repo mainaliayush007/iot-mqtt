@@ -20,12 +20,13 @@ def process1():
     socket_client.settimeout(60)
     while 1:    
         try:
+            dt = {'Key':'CPU_Usage','Value': psutil.cpu_percent()}
+            print(dt)
+            # msg = "CPUUsage:"+ str(psutil.cpu_percent())
+            # print(msg)
+            socket_client.send(str(dt).encode())
             
-            msg = "CPU Usage : "+ str(psutil.cpu_percent())
-            print(msg)
-            socket_client.send(msg.encode())
-            
-            time.sleep(1)
+            time.sleep(3)
         except BrokenPipeError as ex:
             print(ex)
             socket_client.close()

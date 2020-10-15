@@ -20,12 +20,12 @@ def process1():
     socket_client.settimeout(60)
     while 1:    
         try:
+            dt = {'Key':'Virtual_Memory','Value': psutil.virtual_memory()[2]}
+            # msg = "{VirtualMemory:"+ str(psutil.virtual_memory()[2]) +" }"
+            print(dt)
+            socket_client.send(str(dt).encode())
             
-            msg = "Virtual memory usage: "+ str(psutil.virtual_memory()[2]) 
-            print(msg)
-            socket_client.send(msg.encode())
-            
-            time.sleep(3)
+            time.sleep(2)
         except BrokenPipeError as ex:
             print(ex)
             socket_client.close()

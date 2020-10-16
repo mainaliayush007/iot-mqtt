@@ -13,7 +13,7 @@ import sqlite3
 import datetime
 
 thread_process_list=list()
-connection = sqlite3.connect("MyDb.db", check_same_thread=False)
+connection = sqlite3.connect("CpuInfo.db", check_same_thread=False)
 threads = [] 
 server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 ip_port = ("127.0.0.1",8080)
@@ -35,38 +35,7 @@ class ClientThread(Thread):
             msg = data.decode()
             dt = eval(msg) 
             process_storeData(dt,ip,port)
-            # if(dt['Key']=='CPUUsage'):
-            #     if(float(dt['Value']>10.0) and float(dt['Value']<30.0) ):
-            #         print("CPU Usage from the node "+str((ip,port)) +" is "+dt['Value'])
-            #         print("CPU Usage between 10 and 30%")
-            #     elif(float(dt['Value']>30.0)):
-            #         valueList = list()
-            #         valueList.append(datetime.now())
-            #         valueList.append("CPU_Usage")
-            #         valueList.append(dt['Value'])
-            #         print("CPU Usage more than 30%")
-            #         try:
-            #             c.execute("Insert into CpuInfo (DateTime, Key, Value ) VALUES (?,?,?)",tuple(valueList))
-            #             valueList.clear()
-            #             connection.commit()
-            #             print("Inserted")
-            #         except sqlite3.Error as error:
-            #             print(error)
-            
-                    
-                
-           
-            # if(msg.contains("CPUUsage")):
-                
-            #     pass
-            # elif(msg.contains("VirtualMemory")):
-            #     pass
-                
-            
-            # print(data.decode() + " From the node "+ str((ip,port)))
-            # if(len(thread_process_list)==0 or port not in thread_process_list):
-            #     print(str((ip,port)),"Joined!")
-            #     thread_process_list.append(port)
+
 
             if not data: 
                 break
@@ -83,36 +52,8 @@ def main():
     while True: 
         message_recv = conn.recv(1024)
         dt = eval(message_recv)
-        # process_storeData(dt,ip,port)
+        process_storeData(dt,ip,port)
 
-        if(dt['Key']=='CPU_Usage'):
-            if(float(dt['Value']>30.0)):
-                valueList = list()
-                valueList.append(str(datetime.datetime.now()))
-                valueList.append("CPU_Usage")
-                valueList.append(dt['Value'])
-                print("CPU Usage more than 30%")
-                try:
-                    c.execute("Insert into CpuInfo (DateTime, Key, Value ) VALUES (?,?,?)",tuple(valueList))
-                    valueList.clear()
-                    connection.commit()
-                    print("Inserted CPU Usage")
-                except sqlite3.Error as error:
-                    print(error)
-        elif(dt['Key']=='Virtual_Memory'):
-            if(float(dt['Value']>40.0)):
-                valueList = list()
-                valueList.append(str(datetime.datetime.now()))
-                valueList.append("Virtual_Memory")
-                valueList.append(dt['Value'])
-                print("Memory Usage more than 40%")
-                try:
-                    c.execute("Insert into CpuInfo (DateTime, Key, Value ) VALUES (?,?,?)",tuple(valueList))
-                    valueList.clear()
-                    connection.commit()
-                    print("Inserted Memory Usage")
-                except sqlite3.Error as error:
-                        print(error)
         newthread = ClientThread(ip,port)
         newthread.start() 
         threads.append(newthread) 
@@ -122,15 +63,15 @@ def main():
 
 def createDb():
     
-    c.execute("CREATE TABLE IF NOT EXISTS CpuInfo (DateTime TEXT, Key TEXT, Value REAL)")
-
+    c.execute("CREATE TABLE IF NOT EXISTS CpuInfo (id INTEGER PRIMARY KEY AUTOINCREMENT ,DateTime TEXT, Key TEXT ,Value REAL)")
+   
 def process_storeData(dt,ip,port):
     print(dt)
     if(dt['Key']=='CPU_Usage'):
             if(float(dt['Value']>30.0)):
                 valueList = list()
                 valueList.append(str(datetime.datetime.now()))
-                valueList.append("CPU_Usage")
+                valueList.append(dt['Key'])
                 valueList.append(dt['Value'])
                 print("CPU Usage more than 30%")
                 try:
@@ -144,7 +85,7 @@ def process_storeData(dt,ip,port):
         if(float(dt['Value']>40.0)):
             valueList = list()
             valueList.append(str(datetime.datetime.now()))
-            valueList.append("Virtual_Memory")
+            valueList.append(dt['Key'])
             valueList.append(dt['Value'])
             print("Memory Usage more than 40%")
             try:

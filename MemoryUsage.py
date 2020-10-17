@@ -25,7 +25,7 @@ def process1():
             print(dt)
             socket_client.send(str(dt).encode())
             
-            time.sleep(2)
+            time.sleep(45)
         except BrokenPipeError as ex:
             print(ex)
             socket_client.close()

@@ -179,20 +179,7 @@ def handle_mqtt_message(client, userdata, message):
             
                 
 
-def send_email(message):
-    
-    try:
-        with app.app_context():
-            msg = Message("Sending email",
-                sender="iotmqttipr@gmail.com",
-                recipients=['mainaliayush2007@gmail.com'])
-            msg.body= message
-            print(msg)
-            mail.send(msg)
-            print("Bhayo holla")
-    except Exception as ex:
-            print("Bhayeana holla")
-            print(str(ex))
+
 
 @mqtt.on_log()
 def handle_logging(client, userdata, level, buf):

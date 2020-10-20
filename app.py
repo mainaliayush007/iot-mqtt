@@ -19,11 +19,9 @@ eventlet.monkey_patch()
 
 
 app = Flask(__name__)
-app.config['SECRET'] = 'my secret key'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['MQTT_BROKER_URL'] = 'broker.hivemq.com'
 app.config['MQTT_BROKER_PORT'] = 1883
-app.config['MQTT_CLIENT_ID'] = 'flask_mqtt'
 app.config['MQTT_CLEAN_SESSION'] = True
 app.config['MQTT_USERNAME'] = ''
 app.config['MQTT_PASSWORD'] = ''
@@ -54,11 +52,11 @@ mqtt = Mqtt(app)
 mail =  Mail(app)
 socketio = SocketIO(app)
 bootstrap = Bootstrap(app)
-connection = sqlite3.connect("CpuInfo.db", check_same_thread=False)
-c= connection.cursor()
 
 subscribe = None
 publish = None
+isCpuRequest = False
+isMemRequest = False
 
 
 @app.route('/')
@@ -69,56 +67,52 @@ def index():
 def test():
     return '<h1> This is the test page!</h1>'
 
+
+def on_publish(client,userdata,result): #create function for callback
+  print("published data is : ")
+  pass
+
 @socketio.on('publish')
 def handle_publish(json_str):
     data = json.loads(json_str)
-    publish = data['topic']
-    print("Publish is "+publish)
-    print("Subscribe is "+subscribe)
-    if(publish=="topic/cpu_request" and subscribe=="topic/cpu_reply"):
-        sendEmail = False
-        print("Inside")
-        query = "Select * from CpuInfo Where Key = 'CPU_Usage' Order by id DESC LIMIT 10"
-        datas = c.execute(query)
-        myList = []
-        for d in datas:
-            myList.append(d[3])
-            if(d[3]>50.00):
-                sendEmail =  True
-        print(myList)
-        data['message'] = str(myList)
-        data['topic'] = subscribe
-        mqtt.publish(data['topic'], data['message'], data['qos'])
-        if(sendEmail):
-            send_email("Warning! CPU Usage is more than 50%" )
+    global isCpuRequest
+    global isMemRequest
+    print("Publish is "+data['topic'])
+    if(data['topic']=="topic/cpu_request"):
+        mqtt.on_publish = on_publish
+        mqtt.publish(data['topic'],'nothing')
+        isCpuRequest = True
+        isMemRequest = False
+        
+        
+        mqtt.subscribe('topic/cpu_reply')
+    elif(data['topic']=="topic/mem_request"):
+        mqtt.on_publish = on_publish
+        mqtt.publish(data['topic'],'nothing')
+        
+        
+        mqtt.subscribe('topic/mem_reply')
+        isCpuRequest = False
+        isMemRequest = True
+    
 
-    elif(publish=="topic/mem_request" and subscribe=="topic/mem_reply"):
-        print("Inside")
-        query = "Select * from CpuInfo Where Key = 'Virtual_Memory' Order by id DESC LIMIT 10"
-        sendEmail = False
-        datas = c.execute(query)
-        myList = []
-        for d in datas:
-            myList.append(d[3])
-            if(d[3]>80.0):
-                sendEmail = True
-        print(myList)
-        if(sendEmail):
-            send_email("Warning! Memory Usage is more than 80% ")
-        data['message'] = str(myList)
-        data['topic'] = subscribe
-        mqtt.publish(data['topic'], data['message'], data['qos'])
 
 
 
 @socketio.on('subscribe')
 def handle_subscribe(json_str):
     data = json.loads(json_str)
-    global publish
-    global subscribe
-    subscribe = data['topic']
-    print("Subscribe is "+subscribe)
-    mqtt.subscribe(data['topic'], data['qos'])
+   
+    print(data)
+   
+    if(data['topic'=='topic/cpu_reply']):
+         mqtt.subscribe(data['topic'])
+         
+         print('Subscribing in '+data['topic'])
+    elif(data['topic'=='topic/mem_reply']):
+         mqtt.subscribe(data['topic'])
+         print('Subscribing in '+data['topic'])
+         
 
 
     
@@ -138,8 +132,52 @@ def handle_mqtt_message(client, userdata, message):
         payload=message.payload.decode(),
         qos=message.qos,
     )
+    # for ele in data['payload']:
+    #     print(ele)
     socketio.emit('mqtt_message', data=data)
-
+    items = data['payload']
+    if(isCpuRequest):
+        print("CPU REQUEST ",items)
+        items = items[1:-1]
+        items = items.split(',')
+        print(items)
+        for item in items:
+            print(item)
+            if(float(item)>50.00):
+                sendEmail = True
+                
+    
+            
+    elif(isMemRequest):
+        print("MEM REQUEST ",items)
+        items = items[1:-1]
+        items = items.split(',')
+        print(items)
+        for item in items:
+            print(item)
+            if(float(item)>80.00):
+                sendEmail = True
+                
+    if(sendEmail):
+        
+        msg =""
+        if(isCpuRequest):
+            message="Warning!  CPU Usage more than 50 percent!"
+        elif(isMemRequest):
+            message = "Warning!  Memory Usage more than 80 percent!"
+        print("Inside send email: ",msg)
+        try:
+            with app.app_context():
+                msg = Message("Warning!",
+                    sender="iotmqttipr@gmail.com",
+                    recipients=['mainaliayush2007@gmail.com'])
+                msg.body= message
+                print(msg)
+                mail.send(msg)
+        except Exception as ex:
+            print(str(ex))
+            
+                
 
 def send_email(message):
     

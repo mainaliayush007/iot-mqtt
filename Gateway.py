@@ -146,7 +146,7 @@ def process_storeData(dt,ip,port):
                 except sqlite3.Error as error:
                     print(error)
     elif(dt['Key']=='Virtual_Memory'):
-        if(float(dt['Value']>40.0)):
+        if(float(dt['Value']>80.0)):
             valueList = list()
             valueList.append(str(datetime.datetime.now()))
             valueList.append(dt['Key'])
